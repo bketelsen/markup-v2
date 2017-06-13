@@ -1,7 +1,6 @@
 package markup
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
@@ -10,10 +9,14 @@ import (
 	"golang.org/x/net/html"
 )
 
+// TagDecoder is the interface that describe a decoder that can read HTML5 code
+// and translate it to a Tag tree.
+// Additionally, HTML5 can embed custom component tags.
 type TagDecoder interface {
 	Decode(t *Tag) error
 }
 
+// NewTagDecoder creates a new tad decoder.
 func NewTagDecoder(r io.Reader) TagDecoder {
 	return &tagDecoder{
 		tokenizer: html.NewTokenizer(r),
@@ -59,8 +62,6 @@ func (d *tagDecoder) decodeTag(t *Tag) bool {
 	bname, hasAttr := z.TagName()
 	name := string(bname)
 	t.Name = name
-
-	fmt.Println(name)
 
 	if hasAttr {
 		d.decodeAttrs(t)
