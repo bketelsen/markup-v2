@@ -15,7 +15,7 @@ var (
 // CompoBuilder is the interface that describes a component factory.
 type CompoBuilder interface {
 	// Register registers component of type c into the builder.
-	// Components must be registed to be used.
+	// Components must be registered to be used.
 	// During a rendering, it allows to create components of same type as c when
 	// a tag named like c is found.
 	Register(c Componer) (override bool)

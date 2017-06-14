@@ -20,7 +20,7 @@ func TestCompoBuilderRegister(t *testing.T) {
 
 	b := make(compoBuilder)
 	if b.Register(c) {
-		t.Fatalf("%s should not be overriden", cname)
+		t.Fatalf("%s should not be overridden", cname)
 	}
 
 	if _, ok := b[cname]; !ok {
@@ -28,7 +28,7 @@ func TestCompoBuilderRegister(t *testing.T) {
 	}
 
 	if !b.Register(c) {
-		t.Fatalf("%s should have been overriden", cname)
+		t.Fatalf("%s should have been overridden", cname)
 	}
 }
 
@@ -46,7 +46,7 @@ func TestCompoBuilderNew(t *testing.T) {
 		t.Fatalf("%s should have been created: %v", cname, n)
 	}
 
-	if n, err = b.New("unknown"); err == nil {
+	if _, err = b.New("unknown"); err == nil {
 		t.Fatal("unknown should not have been created")
 	}
 }
