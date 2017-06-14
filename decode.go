@@ -86,14 +86,10 @@ func (d *tagDecoder) decodeTag(t *Tag) bool {
 func (d *tagDecoder) decodeAttrs(t *Tag) {
 	z := d.tokenizer
 
-	attrs := make([]Attr, 0, 5)
+	attrs := make(map[string]string)
 	for {
 		key, val, more := z.TagAttr()
-		attr := Attr{
-			Key: string(key),
-			Val: string(val),
-		}
-		attrs = append(attrs, attr)
+		attrs[string(key)] = string(val)
 		if !more {
 			break
 		}

@@ -11,7 +11,7 @@ func TestParse(t *testing.T) {
 	<h1>hello</h1>
 	<br>
 	<input type="text" required>
-	<FooComponent Bar="42">
+	<lib.FooComponent Bar="42">
 </div>
 	`
 
@@ -69,17 +69,17 @@ func testParseCheckInput(t *testing.T, tag Tag) {
 	if count := len(tag.Attrs); count != 2 {
 		t.Fatal("tag should have 2 attributes:", count)
 	}
-	if attr, expec := tag.Attrs[0], (Attr{"type", "text"}); attr != expec {
-		t.Fatalf("attr != expec: %+v != %+v", attr, expec)
+	if val, _ := tag.Attrs["type"]; val != "text" {
+		t.Fatalf(`tag should have an attr with value = "text": %s`, val)
 	}
-	if attr, expec := tag.Attrs[1], (Attr{Key: "required"}); attr != expec {
-		t.Fatalf("attr != expec: %+v != %+v", attr, expec)
+	if _, ok := tag.Attrs["required"]; !ok {
+		t.Fatal(`tag should have an attr with key = "required"`)
 	}
 }
 
 func testParseCheckFooComponent(t *testing.T, tag Tag) {
-	if name := tag.Name; name != "foocomponent" {
-		t.Fatalf(`tag name should be "foocomponent": "%s"`, name)
+	if name := tag.Name; name != "lib.foocomponent" {
+		t.Fatalf(`tag name should be "lib.foocomponent": "%s"`, name)
 	}
 	if count := len(tag.Children); count != 0 {
 		t.Fatal("tag should not have children:", count)
@@ -87,8 +87,8 @@ func testParseCheckFooComponent(t *testing.T, tag Tag) {
 	if count := len(tag.Attrs); count != 1 {
 		t.Fatal("tag should have 1 attribure:", count)
 	}
-	if attr, expec := tag.Attrs[0], (Attr{"bar", "42"}); attr != expec {
-		t.Fatalf("attr != expec: %+v != %+v", attr, expec)
+	if val, _ := tag.Attrs["bar"]; val != "42" {
+		t.Fatalf(`tag should have an attr with value = "42": %s`, val)
 	}
 }
 

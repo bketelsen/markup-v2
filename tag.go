@@ -10,14 +10,8 @@ type Tag struct {
 	ID       uuid.UUID
 	Name     string
 	Text     string
-	Attrs    []Attr
+	Attrs    map[string]string
 	Children []Tag
-}
-
-// Attr represents a tag attribute.
-type Attr struct {
-	Key string
-	Val string
 }
 
 // IsEmpty reports whether its argument t is nil.
@@ -55,21 +49,22 @@ func (t *Tag) IsVoidElem() bool {
 }
 
 var (
-	voidElems = map[string]bool{
-		"area":   true,
-		"base":   true,
-		"br":     true,
-		"col":    true,
-		"embed":  true,
-		"hr":     true,
-		"img":    true,
-		"input":  true,
-		"keygen": true,
-		"link":   true,
-		"meta":   true,
-		"param":  true,
-		"source": true,
-		"track":  true,
-		"wbr":    true,
+	void      = struct{}{}
+	voidElems = map[string]struct{}{
+		"area":   void,
+		"base":   void,
+		"br":     void,
+		"col":    void,
+		"embed":  void,
+		"hr":     void,
+		"img":    void,
+		"input":  void,
+		"keygen": void,
+		"link":   void,
+		"meta":   void,
+		"param":  void,
+		"source": void,
+		"track":  void,
+		"wbr":    void,
 	}
 )
