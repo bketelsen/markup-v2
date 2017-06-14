@@ -21,7 +21,7 @@ func (t *Tag) IsEmpty() bool {
 }
 
 // IsText reports whether its argument t represents a text.
-// Texts doesn't have a name and are not empty.
+// Text tags doesn't have a name and are not empty.
 func (t *Tag) IsText() bool {
 	if t.IsEmpty() {
 		return false
@@ -30,7 +30,7 @@ func (t *Tag) IsText() bool {
 }
 
 // IsComponent reports whether its argument t represents a component.
-// Components are not void elements and not empty.
+// Component tags are not void elements and not empty.
 func (t *Tag) IsComponent() bool {
 	if t.IsEmpty() {
 		return false
