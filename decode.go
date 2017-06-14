@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-// TagDecoder is the interface that describe a decoder that can read HTML5 code
+// TagDecoder is the interface that describes a decoder that can read HTML5 code
 // and translate it to a Tag tree.
 // Additionally, HTML5 can embed custom component tags.
 type TagDecoder interface {
