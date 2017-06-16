@@ -8,6 +8,7 @@ import (
 // Tag represents an HTML tag.
 type Tag struct {
 	ID       uuid.UUID
+	CompoID  uuid.UUID
 	Name     string
 	Text     string
 	Attrs    map[string]string
