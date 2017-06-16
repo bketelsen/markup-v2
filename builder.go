@@ -13,7 +13,7 @@ type CompoBuilder interface {
 	// Components must be registered to be used.
 	// During a rendering, it allows to create components of same type as c when
 	// a tag named like c is found.
-	Register(c Componer) (override bool)
+	Register(c Componer) (override bool, err error)
 
 	// New creates a component named n.
 	New(n string) (c Componer, err error)
@@ -26,7 +26,11 @@ func NewCompoBuilder() CompoBuilder {
 
 type compoBuilder map[string]reflect.Type
 
-func (b compoBuilder) Register(c Componer) (override bool) {
+func (b compoBuilder) Register(c Componer) (override bool, err error) {
+	if err = ensureValidComponent(c); err != nil {
+		return
+	}
+
 	v := reflect.ValueOf(c)
 	v = reflect.Indirect(v)
 	t := v.Type()
