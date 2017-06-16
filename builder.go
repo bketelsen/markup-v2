@@ -7,11 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Components allows to register and create new instances of components.
-	Components CompoBuilder = make(compoBuilder)
-)
-
 // CompoBuilder is the interface that describes a component factory.
 type CompoBuilder interface {
 	// Register registers component of type c into the builder.
@@ -22,6 +17,11 @@ type CompoBuilder interface {
 
 	// New creates a component named n.
 	New(n string) (c Componer, err error)
+}
+
+// NewCompoBuilder creates a compo builder.
+func NewCompoBuilder() CompoBuilder {
+	return make(compoBuilder)
 }
 
 type compoBuilder map[string]reflect.Type

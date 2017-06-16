@@ -13,6 +13,10 @@ func (c *RegisterTest) Render() string {
 	return `<p>Hello World</p>`
 }
 
+func TestNewCompoBuilder(t *testing.T) {
+	NewCompoBuilder()
+}
+
 func TestCompoBuilderRegister(t *testing.T) {
 	c := &RegisterTest{}
 	ct := reflect.TypeOf(*c)
