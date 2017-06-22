@@ -16,13 +16,13 @@ type Tag struct {
 }
 
 // IsEmpty reports whether its argument t is nil.
-// Empty tags have empty name and empty text
+// Empty tags have empty name and empty text.
 func (t *Tag) IsEmpty() bool {
 	return len(t.Name) == 0 && len(t.Text) == 0
 }
 
 // IsText reports whether its argument t represents a text.
-// Text tags doesn't have a name and are not empty.
+// Text tags have empty name and non empty text.
 func (t *Tag) IsText() bool {
 	if t.IsEmpty() {
 		return false
@@ -31,9 +31,9 @@ func (t *Tag) IsText() bool {
 }
 
 // IsComponent reports whether its argument t represents a component.
-// Component tags are not void elements and not empty.
+// Component tags have non empty name and are not void elements.
 func (t *Tag) IsComponent() bool {
-	if t.IsEmpty() {
+	if len(t.Name) == 0 {
 		return false
 	}
 

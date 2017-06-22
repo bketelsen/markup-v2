@@ -95,7 +95,7 @@ func testParseCheckFooComponent(t *testing.T, tag Tag) {
 func TestParseSelfClosingTagError(t *testing.T) {
 	h := `
 <p>
-	<input />
+	<input/>
 </p>
 `
 
