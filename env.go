@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Env is the interface that describes an environment that handle component life
-// cycle.
+// Env is the interface that describes an environment that handles components
+// lifecycle.
 type Env interface {
 	// Component returns the component mounted under the identifier id.
 	// err should be set if there is no mounted component under id.
