@@ -82,91 +82,91 @@ func TestMapComponentFields(t *testing.T) {
 		{
 			name: "anonymous",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"zerocompo": `{"placeholder": 42}`}
+				attrs := AttrMap{"zerocompo": `{"placeholder": 42}`}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "unexported",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"secret": "pandore"}
+				attrs := AttrMap{"secret": "pandore"}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "string",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"string": "hello"}
+				attrs := AttrMap{"string": "hello"}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "bool",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"bool": "true"}
+				attrs := AttrMap{"bool": "true"}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "bool error",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"bool": "lkdsja"}
+				attrs := AttrMap{"bool": "lkdsja"}
 				testMapComponentFieldsErrors(t, attrs)
 			},
 		},
 		{
 			name: "int",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"int": "42"}
+				attrs := AttrMap{"int": "42"}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "int error",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"int": "zzedgw"}
+				attrs := AttrMap{"int": "zzedgw"}
 				testMapComponentFieldsErrors(t, attrs)
 			},
 		},
 		{
 			name: "uint",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"uint": "42"}
+				attrs := AttrMap{"uint": "42"}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "uint error",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"uint": "-42"}
+				attrs := AttrMap{"uint": "-42"}
 				testMapComponentFieldsErrors(t, attrs)
 			},
 		},
 		{
 			name: "float",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"float": "42.42"}
+				attrs := AttrMap{"float": "42.42"}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "float error",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"float": "-42.zdf"}
+				attrs := AttrMap{"float": "-42.zdf"}
 				testMapComponentFieldsErrors(t, attrs)
 			},
 		},
 		{
 			name: "struct",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"struct": `{"A": 42, "B": "world"}`}
+				attrs := AttrMap{"struct": `{"A": 42, "B": "world"}`}
 				testMapComponentFields(t, attrs)
 			},
 		},
 		{
 			name: "struct error",
 			test: func(t *testing.T) {
-				attrs := map[string]string{"struct": `{"A": "world", "B": 42}`}
+				attrs := AttrMap{"struct": `{"A": "world", "B": 42}`}
 				testMapComponentFieldsErrors(t, attrs)
 			},
 		},
@@ -177,7 +177,7 @@ func TestMapComponentFields(t *testing.T) {
 	}
 }
 
-func testMapComponentFields(t *testing.T, attrs map[string]string) {
+func testMapComponentFields(t *testing.T, attrs AttrMap) {
 	c := &CompoWithFields{}
 	if err := mapComponentFields(c, attrs); err != nil {
 		t.Fatal(err)
@@ -185,7 +185,7 @@ func testMapComponentFields(t *testing.T, attrs map[string]string) {
 	t.Logf("%+v", c)
 }
 
-func testMapComponentFieldsErrors(t *testing.T, attrs map[string]string) {
+func testMapComponentFieldsErrors(t *testing.T, attrs AttrMap) {
 	c := CompoWithFields{}
 	err := mapComponentFields(&c, attrs)
 	if err == nil {

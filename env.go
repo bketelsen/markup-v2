@@ -170,6 +170,10 @@ func (e *env) syncTags(l *Tag, r *Tag) (syncs []Sync, syncParent bool, err error
 		return
 	}
 
+	if l.IsComponent() {
+		return e.syncComponentTags(l, r)
+	}
+
 	return
 }
 
@@ -197,6 +201,11 @@ func (e *env) syncDifferentTags(l *Tag, r *Tag) (syncs []Sync, syncParent bool, 
 func (e *env) syncTextTags(l *Tag, r *Tag) (syncParent bool) {
 	l.Text = r.Text
 	syncParent = true
+	return
+}
+
+func (e *env) syncComponentTags(l *Tag, r *Tag) (syncs []Sync, syncParent bool, err error) {
+
 	return
 }
 

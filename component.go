@@ -44,7 +44,7 @@ func ensureValidComponent(c Componer) error {
 	return nil
 }
 
-func mapComponentFields(c Componer, attrs map[string]string) error {
+func mapComponentFields(c Componer, attrs AttrMap) error {
 	if len(attrs) == 0 {
 		return nil
 	}

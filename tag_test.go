@@ -54,3 +54,41 @@ func TestTagIsVoidElement(t *testing.T) {
 		t.Error("tag should not be a void element")
 	}
 }
+
+func TestAttrEquals(t *testing.T) {
+	attr := AttrMap{
+		"hello": "world",
+		"foo":   "bar",
+	}
+
+	attr2 := AttrMap{
+		"foo":   "bar",
+		"hello": "world",
+	}
+
+	if !AttrEquals(attr, attr2) {
+		t.Error("attr and attr2 should be equals")
+	}
+
+	if AttrEquals(attr, nil) {
+		t.Error("attr and nil should not be equals")
+	}
+
+	attr3 := AttrMap{
+		"foo":   "bar",
+		"hello": "maxoo",
+	}
+
+	if AttrEquals(attr, attr3) {
+		t.Error("attr and attr3 should not be equals")
+	}
+
+	attr4 := AttrMap{
+		"foo": "bar",
+		"bye": "world",
+	}
+
+	if AttrEquals(attr, attr4) {
+		t.Error("attr and attr4 should not be equals")
+	}
+}

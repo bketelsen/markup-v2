@@ -11,7 +11,7 @@ type Tag struct {
 	CompoID  uuid.UUID
 	Name     string
 	Text     string
-	Attrs    map[string]string
+	Attrs    AttrMap
 	Children []Tag
 }
 
@@ -50,22 +50,42 @@ func (t *Tag) IsVoidElem() bool {
 }
 
 var (
-	void      = struct{}{}
 	voidElems = map[string]struct{}{
-		"area":   void,
-		"base":   void,
-		"br":     void,
-		"col":    void,
-		"embed":  void,
-		"hr":     void,
-		"img":    void,
-		"input":  void,
-		"keygen": void,
-		"link":   void,
-		"meta":   void,
-		"param":  void,
-		"source": void,
-		"track":  void,
-		"wbr":    void,
+		"area":   struct{}{},
+		"base":   struct{}{},
+		"br":     struct{}{},
+		"col":    struct{}{},
+		"embed":  struct{}{},
+		"hr":     struct{}{},
+		"img":    struct{}{},
+		"input":  struct{}{},
+		"keygen": struct{}{},
+		"link":   struct{}{},
+		"meta":   struct{}{},
+		"param":  struct{}{},
+		"source": struct{}{},
+		"track":  struct{}{},
+		"wbr":    struct{}{},
 	}
 )
+
+// AttrMap represents a map of attributes.
+type AttrMap map[string]string
+
+// AttrEquals reports wheter its arguments l and r are equals.
+func AttrEquals(l, r AttrMap) bool {
+	if len(l) != len(r) {
+		return false
+	}
+
+	for k, v := range l {
+		otherVal, ok := r[k]
+		if !ok {
+			return false
+		}
+		if v != otherVal {
+			return false
+		}
+	}
+	return true
+}
