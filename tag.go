@@ -51,21 +51,21 @@ func (t *Tag) IsVoidElem() bool {
 
 var (
 	voidElems = map[string]struct{}{
-		"area":   struct{}{},
-		"base":   struct{}{},
-		"br":     struct{}{},
-		"col":    struct{}{},
-		"embed":  struct{}{},
-		"hr":     struct{}{},
-		"img":    struct{}{},
-		"input":  struct{}{},
-		"keygen": struct{}{},
-		"link":   struct{}{},
-		"meta":   struct{}{},
-		"param":  struct{}{},
-		"source": struct{}{},
-		"track":  struct{}{},
-		"wbr":    struct{}{},
+		"area":   {},
+		"base":   {},
+		"br":     {},
+		"col":    {},
+		"embed":  {},
+		"hr":     {},
+		"img":    {},
+		"input":  {},
+		"keygen": {},
+		"link":   {},
+		"meta":   {},
+		"param":  {},
+		"source": {},
+		"track":  {},
+		"wbr":    {},
 	}
 )
 
