@@ -137,7 +137,8 @@ func TestEnv(t *testing.T) {
 
 func testMountDismount(t *testing.T, env *env, c Componer) {
 	// Mount.
-	if _, err := env.Mount(c); err != nil {
+	root, err := env.Mount(c)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if count := len(env.components); count != 2 {
@@ -145,6 +146,14 @@ func testMountDismount(t *testing.T, env *env, c Componer) {
 	}
 	if count := len(env.compoRoots); count != 2 {
 		t.Fatal("env shoud have 2 component roots:", count)
+	}
+
+	barTag := root.Children[1]
+	if name := barTag.Name; name != "markup.bar" {
+		t.Fatalf(`barTag.Name should be "markup.bar": "%s"`, name)
+	}
+	if _, err = env.Component(barTag.ID); err != nil {
+		t.Fatal(err)
 	}
 
 	// Dismount
@@ -197,6 +206,5 @@ func testDismountDismountedChild(t *testing.T, env *env, c Componer) {
 			env.Dismount(v)
 		}
 	}
-
 	env.Dismount(c)
 }

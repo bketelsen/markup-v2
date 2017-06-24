@@ -58,6 +58,12 @@ func (e *env) Component(id uuid.UUID) (c Componer, err error) {
 }
 
 func (e *env) Mount(c Componer) (root Tag, err error) {
+	rootID := uuid.New()
+	compoID := uuid.New()
+	return e.mountComponent(c, rootID, compoID)
+}
+
+func (e *env) mountComponent(c Componer, rootID uuid.UUID, compoID uuid.UUID) (root Tag, err error) {
 	if _, ok := e.compoRoots[c]; ok {
 		err = errors.Errorf("%T is already mounted", c)
 		return
@@ -78,8 +84,7 @@ func (e *env) Mount(c Componer) (root Tag, err error) {
 		return
 	}
 
-	compoID := uuid.New()
-	if err = e.mountTag(&root, compoID); err != nil {
+	if err = e.mountTag(&root, rootID, compoID); err != nil {
 		err = errors.Wrapf(err, "fail to mount %T", c)
 		return
 	}
@@ -89,8 +94,8 @@ func (e *env) Mount(c Componer) (root Tag, err error) {
 	return
 }
 
-func (e *env) mountTag(t *Tag, compoID uuid.UUID) error {
-	t.ID = uuid.New()
+func (e *env) mountTag(t *Tag, id uuid.UUID, compoID uuid.UUID) error {
+	t.ID = id
 	t.CompoID = compoID
 
 	if t.IsText() {
@@ -103,16 +108,16 @@ func (e *env) mountTag(t *Tag, compoID uuid.UUID) error {
 			return errors.Wrapf(err, "fail to create %s", t.Name)
 		}
 
-		root, err := e.Mount(c)
-		if err != nil {
+		rootID := uuid.New()
+		if _, err = e.mountComponent(c, rootID, id); err != nil {
 			return errors.Wrapf(err, "fail to mount %s", t.Name)
 		}
-		t.ID = root.CompoID
 		return nil
 	}
 
 	for i := range t.Children {
-		if err := e.mountTag(&t.Children[i], compoID); err != nil {
+		childID := uuid.New()
+		if err := e.mountTag(&t.Children[i], childID, compoID); err != nil {
 			return errors.Wrapf(err, "fail to mount %s child", t.Name)
 		}
 	}
