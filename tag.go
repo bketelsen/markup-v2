@@ -31,7 +31,7 @@ func (t *Tag) IsText() bool {
 }
 
 // IsComponent reports whether its argument t represents a component.
-// Component tags have non empty name and are not void elements.
+// Component tags have non standard HTML5 tag name.
 func (t *Tag) IsComponent() bool {
 	if len(t.Name) == 0 {
 		return false

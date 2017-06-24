@@ -6,7 +6,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type Foo ZeroCompo
+type Foo struct {
+	Boo bool
+}
 
 func (c *Foo) Render() string {
 	return `
@@ -51,6 +53,16 @@ func (c *CompoBadChild) Render() string {
 	return `
 <div>
 	<markup.compobadtmpl>
+</div>
+	`
+}
+
+type CompoBadAttrs ZeroCompo
+
+func (c *CompoBadAttrs) Render() string {
+	return `
+<div>
+	<markup.foo boo="Holy Shit">
 </div>
 	`
 }
@@ -119,6 +131,10 @@ func TestEnv(t *testing.T) {
 		{
 			name: "mount component with bad child",
 			test: func(t *testing.T) { testMountInvalid(t, env, &CompoBadChild{}) },
+		},
+		{
+			name: "mount component with bad attr",
+			test: func(t *testing.T) { testMountInvalid(t, env, &CompoBadAttrs{}) },
 		},
 		{
 			name: "dismount dismounted",

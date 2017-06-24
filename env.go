@@ -105,7 +105,10 @@ func (e *env) mountTag(t *Tag, id uuid.UUID, compoID uuid.UUID) error {
 	if t.IsComponent() {
 		c, err := e.compoBuilder.New(t.Name)
 		if err != nil {
-			return errors.Wrapf(err, "fail to create %s", t.Name)
+			return errors.Wrapf(err, "fail to mount %s", t.Name)
+		}
+		if err = mapComponentFields(c, t.Attrs); err != nil {
+			return errors.Wrapf(err, "fail to mount %s", t.Name)
 		}
 
 		rootID := uuid.New()
@@ -151,4 +154,54 @@ func (e *env) dismountTag(t *Tag) {
 		e.dismountTag(&t.Children[i])
 	}
 	return
+}
+
+func (e *env) Sync(c Componer) error {
+	return nil
+}
+
+func (e *env) syncTags(l *Tag, r *Tag) (syncs []Sync, syncParent bool, err error) {
+	if l.Name != r.Name {
+		return e.syncDifferentTags(l, r)
+	}
+
+	if l.IsText() {
+		syncParent = e.syncTextTags(l, r)
+		return
+	}
+
+	return
+}
+
+func (e *env) syncDifferentTags(l *Tag, r *Tag) (syncs []Sync, syncParent bool, err error) {
+	e.dismountTag(l)
+	if err = e.mountTag(r, l.ID, l.CompoID); err != nil {
+		err = errors.Wrapf(err, "fail to sync %s and %s", l.Name, r.Name)
+		return
+	}
+	*l = *r
+
+	if l.IsText() {
+		syncParent = true
+		return
+	}
+
+	s := Sync{
+		Tag:  *l,
+		Full: true,
+	}
+	syncs = append(syncs, s)
+	return
+}
+
+func (e *env) syncTextTags(l *Tag, r *Tag) (syncParent bool) {
+	l.Text = r.Text
+	syncParent = true
+	return
+}
+
+// Sync represents a sync operatrion.
+type Sync struct {
+	Tag  Tag
+	Full bool
 }
