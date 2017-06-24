@@ -205,7 +205,6 @@ func (e *env) syncTextTags(l *Tag, r *Tag) (syncParent bool) {
 }
 
 func (e *env) syncComponentTags(l *Tag, r *Tag) (syncs []Sync, syncParent bool, err error) {
-
 	return
 }
 
