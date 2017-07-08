@@ -1,6 +1,9 @@
 package markup
 
-import "testing"
+import (
+	"testing"
+	"unsafe"
+)
 
 func TestTagIsEmpty(t *testing.T) {
 	tag := Tag{}
@@ -91,4 +94,9 @@ func TestAttrEquals(t *testing.T) {
 	if AttrEquals(attr, attr4) {
 		t.Error("attr and attr4 should not be equals")
 	}
+}
+
+func TestRandom(t *testing.T) {
+	s := int(unsafe.Sizeof("5490--3434343p4309349030439039403492092-94952-49530-95230-952-"))
+	t.Log("size:", s)
 }

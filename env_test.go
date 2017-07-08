@@ -67,6 +67,58 @@ func (c *CompoBadAttrs) Render() string {
 	`
 }
 
+type Hello struct {
+	Greeting    string
+	Name        string
+	Placeholder string
+	TextBye     bool
+	TmplErr     bool
+	ChildErr    bool
+}
+
+func (h *Hello) Render() string {
+	return `
+<div>
+	<h1>{{html .Greeting}}</h1>
+	<input type="text" placeholder="{{.Placeholder}}">
+	<p>
+		{{if .Name}}
+			<markup.world name="{{html .Name}}" err="{{.ChildErr}}">
+		{{else}}
+			<span>World</span>
+		{{end}}
+	</p>
+
+	{{if .TmplErr}}
+		<div>{{.UnknownField}}</div>
+	{{end}}
+
+	{{if .TextBye}}
+		Goodbye
+	{{else}}
+		<span>Goodbye</span>
+	{{end}}
+</div>
+	`
+}
+
+type World struct {
+	Name string
+	Err  bool
+}
+
+func (w *World) Render() string {
+	return `
+<div>
+	{{html .Name}}
+
+	{{if .Err}}
+		<markup.componotregistered>
+	{{end}}
+</div>
+	`
+}
+
 func TestNewEnv(t *testing.T) {
 	b := NewCompoBuilder()
 	NewEnv(b)
@@ -101,6 +153,8 @@ func TestEnv(t *testing.T) {
 	b.Register(&CompoBadTag{})
 	b.Register(&CompoNotRegistered{})
 	b.Register(&CompoBadChild{})
+	b.Register(&Hello{})
+	b.Register(&World{})
 
 	env := newEnv(b)
 
@@ -143,6 +197,46 @@ func TestEnv(t *testing.T) {
 		{
 			name: "dismount dismounted child",
 			test: func(t *testing.T) { testDismountDismountedChild(t, env, &Foo{}) },
+		},
+		{
+			name: "update should not do modifications",
+			test: func(t *testing.T) { testEnvNoUpdate(t, env, &Hello{}) },
+		},
+		{
+			name: "update should sync text",
+			test: func(t *testing.T) { testEnvUpdateText(t, env, &Hello{Greeting: "Hi"}) },
+		},
+		{
+			name: "update should merge html tag and component",
+			test: func(t *testing.T) { testEnvUpdateMergeHTMLCompo(t, env, &Hello{}) },
+		},
+		{
+			name: "update should merge html tag and text",
+			test: func(t *testing.T) { testEnvUpdateMergeHTMLText(t, env, &Hello{}) },
+		},
+		{
+			name: "update should sync components",
+			test: func(t *testing.T) { testEnvUpdateComponent(t, env, &Hello{Name: "Jonhy"}) },
+		},
+		{
+			name: "update should sync attributes",
+			test: func(t *testing.T) { testEnvUpdateAttr(t, env, &Hello{}) },
+		},
+		{
+			name: "update a not mounted component should fail",
+			test: func(t *testing.T) { testEnvUpdateNotMounted(t, env, &Hello{}) },
+		},
+		{
+			name: "update a component with bad template should fail",
+			test: func(t *testing.T) { testEnvUpdateTemplateErr(t, env, &Hello{}) },
+		},
+		{
+			name: "update a component with an error in its child should fail",
+			test: func(t *testing.T) { testEnvUpdateTemplateChildErr(t, env, &Hello{Name: "Max"}) },
+		},
+		{
+			name: "update should error when merge with error",
+			test: func(t *testing.T) { testEnvUpdateMergeErr(t, env, &Hello{}) },
 		},
 	}
 
@@ -223,4 +317,222 @@ func testDismountDismountedChild(t *testing.T, env *env, c Componer) {
 		}
 	}
 	env.Dismount(c)
+}
+
+func testEnvNoUpdate(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(syncs) != 0 {
+		t.Error("syncs should be empty:", len(syncs))
+	}
+}
+
+func testEnvUpdateText(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.Greeting = "Hello"
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(syncs); l != 1 {
+		t.Fatal("syncs should have 1 element:", l)
+	}
+
+	s := syncs[0]
+	if !s.Full {
+		t.Fatal("s should be a full synchronization")
+	}
+
+	h := s.Tag
+	if h.Name != "h1" {
+		t.Fatal("tag to sync should be a h1:", h.Name)
+	}
+
+	if text := h.Children[0]; text.Text != c.Greeting {
+		t.Fatalf(`text.Text should be "%s": "%s"`, c.Greeting, text.Text)
+	}
+}
+
+func testEnvUpdateMergeHTMLCompo(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.Name = "Maxence"
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(syncs); l != 1 {
+		t.Fatal("syncs should have 1 element:", l)
+	}
+
+	s := syncs[0]
+	if !s.Full {
+		t.Fatal("s should be a full synchronization")
+	}
+
+	world := s.Tag
+	if world.Name != "markup.world" {
+		t.Fatal("tag to sync should be a markup.world:", world.Name)
+	}
+	if name := world.Attrs["name"]; name != c.Name {
+		t.Fatalf(`name should be "%s": "%s"`, c.Name, name)
+	}
+}
+
+func testEnvUpdateMergeHTMLText(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.TextBye = true
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(syncs); l != 1 {
+		t.Fatal("syncs should have 1 element:", l)
+	}
+
+	s := syncs[0]
+	if !s.Full {
+		t.Fatal("s should be a full synchronization")
+	}
+
+	root := s.Tag
+	if root.Name != "div" {
+		t.Fatal("root should be a div:", root.Name)
+	}
+	if l := len(root.Children); l != 4 {
+		t.Fatal("root should have 4 children:", l)
+	}
+	if text := root.Children[3]; text.Text != "Goodbye" {
+		t.Fatalf(`text should be "Goodbye": "%s"`, text)
+	}
+
+}
+
+func testEnvUpdateComponent(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.Name = "Maxence"
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(syncs); l != 1 {
+		t.Fatal("syncs should have 1 element:", l)
+	}
+
+	s := syncs[0]
+	if !s.Full {
+		t.Fatal("s should be a full synchronization")
+	}
+
+	worldRoot := s.Tag
+	if worldRoot.Name != "div" {
+		t.Fatal("worldRoot should be a div:", worldRoot.Name)
+	}
+	if l := len(worldRoot.Children); l != 1 {
+		t.Fatal("worldRoot should have 1 child:", l)
+	}
+	if text := worldRoot.Children[0]; text.Text != c.Name {
+		t.Fatalf(`text.Text should be "%s": "%s"`, c.Name, text.Text)
+	}
+}
+
+func testEnvUpdateAttr(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.Placeholder = "Enter your name"
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(syncs); l != 1 {
+		t.Fatal("syncs should have 1 element:", l)
+	}
+
+	s := syncs[0]
+	if s.Full {
+		t.Fatal("s should not be a full synchronization")
+	}
+
+	input := s.Tag
+	if input.Name != "input" {
+		t.Fatal("input should be an input:", input.Name)
+	}
+	if l := len(input.Children); l != 0 {
+		t.Fatal("worldRoot should not have child")
+	}
+}
+
+func testEnvUpdateNotMounted(t *testing.T, env *env, c *Hello) {
+	_, err := env.Update(c)
+	if err == nil {
+		t.Error("err should not be nil")
+	}
+	t.Log(err)
+}
+
+func testEnvUpdateTemplateErr(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.TmplErr = true
+
+	_, err := env.Update(c)
+	if err == nil {
+		t.Error("err should not be nil")
+	}
+	t.Log(err)
+}
+
+func testEnvUpdateTemplateChildErr(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.ChildErr = true
+
+	_, err := env.Update(c)
+	if err == nil {
+		t.Error("err should not be nil")
+	}
+	t.Log(err)
+}
+
+func testEnvUpdateMergeErr(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.Name = "Maxence"
+	c.ChildErr = true
+
+	_, err := env.Update(c)
+	if err == nil {
+		t.Error("err should not be nil")
+	}
+	t.Log(err)
 }

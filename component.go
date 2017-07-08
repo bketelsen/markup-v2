@@ -1,7 +1,10 @@
 package markup
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"html/template"
 	"reflect"
 	"strconv"
 	"strings"
@@ -119,6 +122,23 @@ func mapComponentField(f reflect.Value, v string) error {
 		if err := json.Unmarshal([]byte(v), i); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func decodeComponent(c Componer, root *Tag) error {
+	r := c.Render()
+	tmpl := template.Must(template.New(fmt.Sprintf("%T", c)).Parse(r))
+
+	b := bytes.Buffer{}
+	if err := tmpl.Execute(&b, c); err != nil {
+		return errors.Wrapf(err, "fail to decode %T", c)
+
+	}
+
+	dec := NewTagDecoder(&b)
+	if err := dec.Decode(root); err != nil {
+		return errors.Wrapf(err, "fail to decode %T", c)
 	}
 	return nil
 }
