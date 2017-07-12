@@ -68,12 +68,13 @@ func (c *CompoBadAttrs) Render() string {
 }
 
 type Hello struct {
-	Greeting    string
-	Name        string
-	Placeholder string
-	TextBye     bool
-	TmplErr     bool
-	ChildErr    bool
+	Greeting      string
+	Name          string
+	Placeholder   string
+	TextBye       bool
+	TmplErr       bool
+	ChildErr      bool
+	CompoFieldErr bool
 }
 
 func (h *Hello) Render() string {
@@ -83,7 +84,7 @@ func (h *Hello) Render() string {
 	<input type="text" placeholder="{{.Placeholder}}">
 	<p>
 		{{if .Name}}
-			<markup.world name="{{html .Name}}" err="{{.ChildErr}}">
+			<markup.world name="{{html .Name}}" err="{{.ChildErr}}" {{if .CompoFieldErr}}fielderr="-42"{{end}}>
 		{{else}}
 			<span>World</span>
 		{{end}}
@@ -97,14 +98,16 @@ func (h *Hello) Render() string {
 		Goodbye
 	{{else}}
 		<span>Goodbye</span>
+		<p>world</p>
 	{{end}}
 </div>
 	`
 }
 
 type World struct {
-	Name string
-	Err  bool
+	Name     string
+	Err      bool
+	FieldErr uint
 }
 
 func (w *World) Render() string {
@@ -215,8 +218,16 @@ func TestEnv(t *testing.T) {
 			test: func(t *testing.T) { testEnvUpdateMergeHTMLText(t, env, &Hello{}) },
 		},
 		{
+			name: "update should merge text and html tag",
+			test: func(t *testing.T) { testEnvUpdateMergeTextHTML(t, env, &Hello{TextBye: true}) },
+		},
+		{
 			name: "update should sync components",
 			test: func(t *testing.T) { testEnvUpdateComponent(t, env, &Hello{Name: "Jonhy"}) },
+		},
+		{
+			name: "update should not sync component",
+			test: func(t *testing.T) { testEnvUpdateComponentNoChange(t, env, &Hello{Name: "Jonhy"}) },
 		},
 		{
 			name: "update should sync attributes",
@@ -237,6 +248,14 @@ func TestEnv(t *testing.T) {
 		{
 			name: "update should error when merge with error",
 			test: func(t *testing.T) { testEnvUpdateMergeErr(t, env, &Hello{}) },
+		},
+		{
+			name: "update should error when merge with component field error",
+			test: func(t *testing.T) { testEnvUpdateCompoFieldErr(t, env, &Hello{Name: "Maxoo"}) },
+		},
+		{
+			name: "update a component with dismounted child should error",
+			test: func(t *testing.T) { testEnvUpdateSyncNotMountedComponent(t, env, &Hello{Name: "Maxoo"}) },
 		},
 	}
 
@@ -425,6 +444,38 @@ func testEnvUpdateMergeHTMLText(t *testing.T, env *env, c *Hello) {
 
 }
 
+func testEnvUpdateMergeTextHTML(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.TextBye = false
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(syncs); l != 1 {
+		t.Fatal("syncs should have 1 element:", l)
+	}
+
+	s := syncs[0]
+	if !s.Full {
+		t.Fatal("s should be a full synchronization")
+	}
+
+	root := s.Tag
+	if l := len(root.Children); l != 5 {
+		t.Fatal("root should have 5 children:", l)
+	}
+	if span := root.Children[3]; span.Name != "span" {
+		t.Fatalf(`span should be a span tag: %s`, span.Name)
+	}
+	if p := root.Children[4]; p.Name != "p" {
+		t.Fatalf(`p should be a p tag: %s`, p.Name)
+	}
+}
+
 func testEnvUpdateComponent(t *testing.T, env *env, c *Hello) {
 	if _, err := env.Mount(c); err != nil {
 		t.Fatal(err)
@@ -454,6 +505,20 @@ func testEnvUpdateComponent(t *testing.T, env *env, c *Hello) {
 	}
 	if text := worldRoot.Children[0]; text.Text != c.Name {
 		t.Fatalf(`text.Text should be "%s": "%s"`, c.Name, text.Text)
+	}
+}
+
+func testEnvUpdateComponentNoChange(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	syncs, err := env.Update(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(syncs); l != 0 {
+		t.Fatal("syncs should be empty")
 	}
 }
 
@@ -532,6 +597,37 @@ func testEnvUpdateMergeErr(t *testing.T, env *env, c *Hello) {
 
 	_, err := env.Update(c)
 	if err == nil {
+		t.Error("err should not be nil")
+	}
+	t.Log(err)
+}
+
+func testEnvUpdateCompoFieldErr(t *testing.T, env *env, c *Hello) {
+	if _, err := env.Mount(c); err != nil {
+		t.Fatal(err)
+	}
+
+	c.CompoFieldErr = true
+
+	_, err := env.Update(c)
+	if err == nil {
+		t.Error("err should not be nil")
+	}
+	t.Log(err)
+}
+
+func testEnvUpdateSyncNotMountedComponent(t *testing.T, env *env, c *Hello) {
+	root, err := env.Mount(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	world := root.Children[2].Children[0]
+	env.dismountTag(world)
+
+	c.Name = "Jonhy"
+
+	if _, err = env.Update(c); err == nil {
 		t.Error("err should not be nil")
 	}
 	t.Log(err)
