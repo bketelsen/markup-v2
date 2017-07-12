@@ -1,6 +1,7 @@
 package markup
 
 import "testing"
+import "time"
 
 type ValidCompo ZeroCompo
 
@@ -192,4 +193,13 @@ func testMapComponentFieldsErrors(t *testing.T, attrs AttrMap) {
 		t.Fatal("err should not be nil")
 	}
 	t.Log(err)
+}
+
+func TestConvertToJSON(t *testing.T) {
+	c := &CompoWithFields{}
+	t.Log(convertToJSON(c))
+}
+
+func TestFormatTime(t *testing.T) {
+	t.Log(formatTime(time.Now(), "2006"))
 }

@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -33,6 +34,18 @@ type Mounter interface {
 // OnDismount si called when a component is dismounted.
 type Dismounter interface {
 	OnDismount()
+}
+
+// Mapper is the interface that wraps FuncMaps method.
+type Mapper interface {
+	// Allows to add custom functions to the template used to render the
+	// component.
+	//
+	// Funcs named json and time are reserved. They handle json conversion and
+	// time format.
+	// They can't be overloaded.
+	// See https://golang.org/pkg/text/template/#Template.Funcs for more details.
+	FuncMaps() template.FuncMap
 }
 
 // ZeroCompo is the type to redefine when writing an empty component.
@@ -139,8 +152,18 @@ func mapComponentField(f reflect.Value, v string) error {
 }
 
 func decodeComponent(c Componer, root *Tag) error {
+	var funcMap template.FuncMap
+	if mapper, ok := c.(Mapper); ok {
+		funcMap = mapper.FuncMaps()
+	}
+	if len(funcMap) == 0 {
+		funcMap = make(template.FuncMap, 2)
+	}
+	funcMap["json"] = convertToJSON
+	funcMap["time"] = formatTime
+
 	r := c.Render()
-	tmpl := template.Must(template.New(fmt.Sprintf("%T", c)).Parse(r))
+	tmpl := template.Must(template.New(fmt.Sprintf("%T", c)).Funcs(funcMap).Parse(r))
 
 	b := bytes.Buffer{}
 	if err := tmpl.Execute(&b, c); err != nil {
@@ -153,4 +176,13 @@ func decodeComponent(c Componer, root *Tag) error {
 		return errors.Wrapf(err, "fail to decode %T", c)
 	}
 	return nil
+}
+
+func convertToJSON(v interface{}) string {
+	b, _ := json.Marshal(v)
+	return template.HTMLEscapeString(string(b))
+}
+
+func formatTime(t time.Time, layout string) string {
+	return t.Format(layout)
 }

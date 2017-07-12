@@ -2,6 +2,7 @@ package markup
 
 import (
 	"testing"
+	"text/template"
 
 	"github.com/google/uuid"
 )
@@ -13,6 +14,10 @@ type Foo struct {
 func (c *Foo) OnMount() {}
 
 func (c *Foo) OnDismount() {}
+
+func (c *Foo) FuncMaps() template.FuncMap {
+	return nil
+}
 
 func (c *Foo) Render() string {
 	return `
