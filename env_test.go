@@ -10,6 +10,10 @@ type Foo struct {
 	Boo bool
 }
 
+func (c *Foo) OnMount() {}
+
+func (c *Foo) OnDismount() {}
+
 func (c *Foo) Render() string {
 	return `
 <div>

@@ -77,6 +77,10 @@ func (e *env) mount(c Componer, rootID uuid.UUID, compoID uuid.UUID) (root Tag, 
 
 	e.components[compoID] = c
 	e.compoRoots[c] = root
+
+	if mounter, ok := c.(Mounter); ok {
+		mounter.OnMount()
+	}
 	return
 }
 
@@ -122,6 +126,10 @@ func (e *env) Dismount(c Componer) {
 	e.dismountTag(root)
 	delete(e.components, root.CompoID)
 	delete(e.compoRoots, c)
+
+	if dismounter, ok := c.(Dismounter); ok {
+		dismounter.OnDismount()
+	}
 	return
 }
 

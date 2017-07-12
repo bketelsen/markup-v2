@@ -23,6 +23,18 @@ type Componer interface {
 	Render() string
 }
 
+// Mounter is the interface that wraps OnMount method.
+// OnMount si called when a component is mounted.
+type Mounter interface {
+	OnMount()
+}
+
+// Dismounter is the interface that wraps OnDismount method.
+// OnDismount si called when a component is dismounted.
+type Dismounter interface {
+	OnDismount()
+}
+
 // ZeroCompo is the type to redefine when writing an empty component.
 // Every instances of an empty struct is given the same memory address, which
 // causes problem for indexing components.
