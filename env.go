@@ -1,8 +1,6 @@
 package markup
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -166,15 +164,6 @@ func (e *env) update(c Componer) (syncs []Sync, syncParent bool, err error) {
 }
 
 func (e *env) syncTags(l, r *Tag) (syncs []Sync, syncParent bool, err error) {
-	fmt.Println("\033[91m")
-	fmt.Println("tag:", l.Name, "->", l.Text)
-	// spew.Dump(l)
-	fmt.Print("\033[92m")
-	fmt.Println("tag:", r.Name, "->", r.Text)
-
-	// spew.Dump(r)
-	fmt.Println("\033[00m")
-
 	if l.Name != r.Name {
 		return e.mergeTags(l, r)
 	}
@@ -214,8 +203,6 @@ func (e *env) syncTags(l, r *Tag) (syncs []Sync, syncParent bool, err error) {
 }
 
 func (e *env) mergeTags(l, r *Tag) (syncs []Sync, syncParent bool, err error) {
-	fmt.Println("mergeTags")
-
 	e.dismountTag(*l)
 	if err = e.mountTag(r, l.ID, l.CompoID); err != nil {
 		err = errors.Wrapf(err, "fail to merge %s and %s", l.Name, r.Name)
@@ -238,7 +225,6 @@ func (e *env) mergeTags(l, r *Tag) (syncs []Sync, syncParent bool, err error) {
 }
 
 func (e *env) syncTextTags(l, r *Tag) (syncParent bool) {
-	fmt.Println("syncTextTags")
 	if l.Text != r.Text {
 		l.Text = r.Text
 		syncParent = true
@@ -247,7 +233,6 @@ func (e *env) syncTextTags(l, r *Tag) (syncParent bool) {
 }
 
 func (e *env) syncComponentTags(l, r *Tag) (syncs []Sync, syncParent bool, err error) {
-	fmt.Println("syncComponentTags")
 	if AttrEquals(l.Attrs, r.Attrs) {
 		return
 	}
@@ -271,8 +256,6 @@ func (e *env) syncComponentTags(l, r *Tag) (syncs []Sync, syncParent bool, err e
 }
 
 func (e *env) syncTagChildren(l, r *Tag) (syncs []Sync, fullsync bool, err error) {
-	fmt.Println("syncTagChildren ", l.Name, len(l.Children), r.Name, len(r.Children))
-
 	lc := l.Children
 	rc := r.Children
 	count := 0
@@ -280,8 +263,6 @@ func (e *env) syncTagChildren(l, r *Tag) (syncs []Sync, fullsync bool, err error
 	for len(lc) != 0 && len(rc) != 0 {
 		var subsyncs []Sync
 		var sp bool
-
-		fmt.Println("match child")
 
 		if subsyncs, sp, err = e.syncTags(&lc[0], &rc[0]); err != nil {
 			return
