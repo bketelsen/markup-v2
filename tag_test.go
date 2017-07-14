@@ -2,7 +2,6 @@ package markup
 
 import (
 	"testing"
-	"unsafe"
 )
 
 func TestTagIsEmpty(t *testing.T) {
@@ -96,7 +95,110 @@ func TestAttrEquals(t *testing.T) {
 	}
 }
 
-func TestRandom(t *testing.T) {
-	s := int(unsafe.Sizeof("5490--3434343p4309349030439039403492092-94952-49530-95230-952-"))
-	t.Log("size:", s)
+func TestTagHTML(t *testing.T) {
+	b := NewCompoBuilder()
+	b.Register(&Hello{})
+	b.Register(&World{})
+
+	env := newEnv(b)
+
+	hello := &Hello{
+		Name: "JonhyMaxoo",
+	}
+
+	root, err := env.Mount(hello)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	h, err := root.HTML(env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(h)
+
+	if _, err = root.HTML(nil); err == nil {
+		t.Fatal("err should not be nil")
+	}
+	t.Log(err)
+
+	errRoot := Tag{
+		Name: "markup.hello",
+	}
+	if _, err = errRoot.HTML(env); err == nil {
+		t.Fatal("err should not be nil")
+	}
+	t.Log(err)
+}
+
+func BenchmarkTagHTML(b *testing.B) {
+	bui := NewCompoBuilder()
+	bui.Register(&Hello{})
+	bui.Register(&World{})
+
+	env := newEnv(bui)
+
+	hello := &Hello{
+		Name: "JonhyMaxoo",
+	}
+
+	root, _ := env.Mount(hello)
+	for i := 0; i < b.N; i++ {
+		root.HTML(env)
+	}
+}
+
+type Hello2 struct {
+	Greeting      string
+	Name          string
+	Placeholder   string
+	TextBye       bool
+	TmplErr       bool
+	ChildErr      bool
+	CompoFieldErr bool
+}
+
+func (h *Hello2) Render() string {
+	return `
+<div>
+	<h1>{{html .Greeting}}</h1>
+	<input type="text" placeholder="{{.Placeholder}}" onchange="Name" />
+	<p>
+		{{if .Name}}
+			<World2 name="{{html .Name}}" err="{{.ChildErr}}" {{if .CompoFieldErr}}fielderr="-42"{{end}} />
+		{{else}}
+			<span>World</span>
+		{{end}}
+	</p>
+
+	{{if .TmplErr}}
+		<div>{{.UnknownField}}</div>
+	{{end}}
+
+	{{if .TextBye}}
+		Goodbye
+	{{else}}
+		<span>Goodbye</span>
+		<p>world</p>
+	{{end}}
+</div>
+	`
+}
+
+type World2 struct {
+	Name     string
+	Err      bool
+	FieldErr uint
+}
+
+func (w *World2) Render() string {
+	return `
+<div>
+	{{html .Name}}
+
+	{{if .Err}}
+		<markup.componotregistered>
+	{{end}}
+</div>
+	`
 }

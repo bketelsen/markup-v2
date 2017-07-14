@@ -1,7 +1,9 @@
 package markup
 
-import "testing"
-import "time"
+import (
+	"testing"
+	"time"
+)
 
 type ValidCompo ZeroCompo
 

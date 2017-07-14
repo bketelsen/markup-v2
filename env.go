@@ -12,6 +12,9 @@ type Env interface {
 	// err should be set if there is no mounted component under id.
 	Component(id uuid.UUID) (c Componer, err error)
 
+	// Root returns the root tag of component c.
+	Root(c Componer) (root Tag, err error)
+
 	// Mount indexes the component c into the env.
 	// The component will live until it is dismounted.
 	//
@@ -49,6 +52,14 @@ func (e *env) Component(id uuid.UUID) (c Componer, err error) {
 	ok := false
 	if c, ok = e.components[id]; !ok {
 		err = errors.Errorf("no component with id %v is mounted", id)
+	}
+	return
+}
+
+func (e *env) Root(c Componer) (root Tag, err error) {
+	ok := false
+	if root, ok = e.compoRoots[c]; !ok {
+		err = errors.Errorf("%T is not mounted", c)
 	}
 	return
 }

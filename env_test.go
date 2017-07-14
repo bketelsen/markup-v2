@@ -90,7 +90,7 @@ func (h *Hello) Render() string {
 	return `
 <div>
 	<h1>{{html .Greeting}}</h1>
-	<input type="text" placeholder="{{.Placeholder}}">
+	<input type="text" placeholder="{{.Placeholder}}" onchange="Name">
 	<p>
 		{{if .Name}}
 			<markup.world name="{{html .Name}}" err="{{.ChildErr}}" {{if .CompoFieldErr}}fielderr="-42"{{end}}>
@@ -155,6 +155,33 @@ func TestEnvComponent(t *testing.T) {
 	if _, err = env.Component(uuid.New()); err == nil {
 		t.Fatal("err should not be nil")
 	}
+}
+
+func TestEnvRoot(t *testing.T) {
+	b := NewCompoBuilder()
+	b.Register(&Foo{})
+	b.Register(&Bar{})
+	env := newEnv(b)
+
+	foo := &Foo{}
+	compoID := uuid.New()
+	rootID := uuid.New()
+	if _, err := env.mount(foo, rootID, compoID); err != nil {
+		t.Fatal(err)
+	}
+
+	root, err := env.Root(foo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if root.ID != rootID {
+		t.Fatal("rootID and root.ID should be equals")
+	}
+
+	if _, err = env.Root(&Bar{}); err == nil {
+		t.Error("err should not be nil")
+	}
+	t.Log(err)
 }
 
 func TestEnv(t *testing.T) {
