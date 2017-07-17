@@ -31,7 +31,9 @@ func (i *IntCompo) Render() string {
 
 type CompoWithFields struct {
 	ZeroCompo
-	secret string
+	secret             string
+	funcHandler        func()
+	funcWithArgHandler func(int)
 
 	String     string
 	Bool       bool
@@ -47,6 +49,18 @@ type CompoWithFields struct {
 
 func (c *CompoWithFields) Render() string {
 	return `<div></div>`
+}
+
+func (c *CompoWithFields) Func() {
+	c.funcHandler()
+}
+
+func (c *CompoWithFields) FuncWithArg(nb int) {
+	c.funcWithArgHandler(nb)
+}
+
+func (c *CompoWithFields) FuncWithMultipleArg(a, b int) {
+	panic("should not be called")
 }
 
 func TestEnsureValidCompo(t *testing.T) {
@@ -204,4 +218,75 @@ func TestConvertToJSON(t *testing.T) {
 
 func TestFormatTime(t *testing.T) {
 	t.Log(formatTime(time.Now(), "2006"))
+}
+
+func TestCallOrAssignMethod(t *testing.T) {
+	funcCalled := false
+	funcWithArgValue := 0
+
+	c := &CompoWithFields{
+		funcHandler: func() {
+			funcCalled = true
+		},
+		funcWithArgHandler: func(nb int) {
+			funcWithArgValue = nb
+		},
+	}
+
+	if err := CallOrAssign(c, "Func", ""); err != nil {
+		t.Fatal(err)
+	}
+	if !funcCalled {
+		t.Fatal("funcCalled should be true")
+	}
+
+	if err := CallOrAssign(c, "FuncWithArg", "42"); err != nil {
+		t.Fatal(err)
+	}
+	if funcWithArgValue != 42 {
+		t.Fatal("funcWithArgValue should be 42:", funcWithArgValue)
+	}
+}
+
+func TestCallOrAssignField(t *testing.T) {
+	c := &CompoWithFields{}
+
+	if err := CallOrAssign(c, "String", `"hello world"`); err != nil {
+		t.Fatal(err)
+	}
+	if c.String != "hello world" {
+		t.Fatalf(`c.String should be "hello world": "%s"`, c.String)
+	}
+
+	if err := CallOrAssign(c, "Int", "42"); err != nil {
+		t.Fatal(err)
+	}
+	if c.Int != 42 {
+		t.Fatal("c.Int should be 42:", c.Int)
+	}
+}
+
+func TestCallOrAssignErrors(t *testing.T) {
+	c := &CompoWithFields{}
+
+	err := CallOrAssign(c, "NonexitentMethodOrField", "")
+	if err == nil {
+		t.Fatal("err should not be nil")
+	}
+	t.Log(err)
+
+	if err = CallOrAssign(c, "Render", ""); err == nil {
+		t.Fatal("err should not be nil")
+	}
+	t.Log(err)
+
+	if err = CallOrAssign(c, "FuncWithMultipleArg", ""); err == nil {
+		t.Fatal("err should not be nil")
+	}
+	t.Log(err)
+
+	if err = CallOrAssign(c, "FuncWithArg", "}{"); err == nil {
+		t.Fatal("err should not be nil")
+	}
+	t.Log(err)
 }

@@ -2,6 +2,9 @@ package markup
 
 import (
 	"testing"
+
+	"github.com/murlokswarm/markup"
+	uuid "github.com/satori/go.uuid"
 )
 
 func TestTagIsEmpty(t *testing.T) {
@@ -201,4 +204,34 @@ func (w *World2) Render() string {
 	{{end}}
 </div>
 	`
+}
+
+func BenchmarkMount(b *testing.B) {
+	bui := NewCompoBuilder()
+	bui.Register(&Hello{})
+	bui.Register(&World{})
+
+	env := newEnv(bui)
+
+	for i := 0; i < b.N; i++ {
+		hello := &Hello{
+			Name: "JonhyMaxoo",
+		}
+		env.Mount(hello)
+		env.Dismount(hello)
+	}
+}
+
+func BenchmarkMountOld(b *testing.B) {
+	markup.Register(&Hello{})
+	markup.Register(&World{})
+	ctx := uuid.NewV4()
+
+	for i := 0; i < b.N; i++ {
+		hello := &Hello2{
+			Name: "JonhyMaxoo",
+		}
+		markup.Mount(hello, ctx)
+		markup.Dismount(hello)
+	}
 }

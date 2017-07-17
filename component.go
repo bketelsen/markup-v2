@@ -186,3 +186,58 @@ func convertToJSON(v interface{}) string {
 func formatTime(t time.Time, layout string) string {
 	return t.Format(layout)
 }
+
+// CallOrAssign call the method n with jval mapped as the first arg or assign
+// jval to the field named n.
+// Methods must take 0 or 1 arg and no return values.
+// Methods and and fields must be exported.
+func CallOrAssign(c Componer, n string, jval string) error {
+	structval := reflect.ValueOf(c)
+
+	if m := structval.MethodByName(n); m.IsValid() {
+		return callComponentMethod(m, jval)
+	}
+
+	structval = structval.Elem()
+
+	if f := structval.FieldByName(n); f.IsValid() {
+		return assignComponentField(f, jval)
+	}
+
+	return errors.Errorf("no method or field named %v", n)
+}
+
+func callComponentMethod(m reflect.Value, jval string) error {
+	mtype := m.Type()
+
+	if mtype.NumOut() != 0 {
+		return errors.New("method should not have return values")
+	}
+
+	if mtype.NumIn() > 1 {
+		return errors.New("method should not have maximum 1 arg")
+	}
+
+	if mtype.NumIn() == 0 {
+		m.Call(nil)
+		return nil
+	}
+
+	argt := mtype.In(0)
+	argv := reflect.New(argt)
+	argi := argv.Interface()
+
+	if err := json.Unmarshal([]byte(jval), argi); err != nil {
+		return errors.Wrap(err, "mapping method 1st arg failed")
+	}
+
+	arg := argv.Elem()
+	m.Call([]reflect.Value{arg})
+	return nil
+}
+
+func assignComponentField(f reflect.Value, jval string) error {
+	fv := f.Addr()
+	fi := fv.Interface()
+	return json.Unmarshal([]byte(jval), fi)
+}

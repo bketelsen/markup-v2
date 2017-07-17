@@ -31,8 +31,7 @@ func (b compoBuilder) Register(c Componer) (override bool, err error) {
 		return
 	}
 
-	v := reflect.ValueOf(c)
-	v = reflect.Indirect(v)
+	v := reflect.ValueOf(c).Elem()
 	t := v.Type()
 
 	name := strings.ToLower(t.String())
