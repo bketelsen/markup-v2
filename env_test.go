@@ -1,6 +1,7 @@
 package markup
 
 import (
+	"strconv"
 	"testing"
 	"text/template"
 
@@ -667,4 +668,34 @@ func testEnvUpdateSyncNotMountedComponent(t *testing.T, env *env, c *Hello) {
 		t.Error("err should not be nil")
 	}
 	t.Log(err)
+}
+
+func BenchmarkSync(b *testing.B) {
+	bui := NewCompoBuilder()
+	bui.Register(&Hello{})
+	bui.Register(&World{})
+
+	env := newEnv(bui)
+
+	hello := &Hello{
+		Name: "JonhyMaxoo",
+	}
+	env.Mount(hello)
+
+	alt := false
+
+	for i := 0; i < b.N; i++ {
+		if alt {
+			hello.Greeting = "Jon"
+		} else {
+			hello.Greeting = ""
+		}
+		hello.TextBye = alt
+		hello.Placeholder = strconv.Itoa(i)
+		hello.Greeting = strconv.Itoa(i)
+
+		env.Update(hello)
+
+		alt = !alt
+	}
 }

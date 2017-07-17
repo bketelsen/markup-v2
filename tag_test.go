@@ -2,9 +2,6 @@ package markup
 
 import (
 	"testing"
-
-	"github.com/murlokswarm/markup"
-	uuid "github.com/satori/go.uuid"
 )
 
 func TestTagIsEmpty(t *testing.T) {
@@ -151,61 +148,6 @@ func BenchmarkTagHTML(b *testing.B) {
 	}
 }
 
-type Hello2 struct {
-	Greeting      string
-	Name          string
-	Placeholder   string
-	TextBye       bool
-	TmplErr       bool
-	ChildErr      bool
-	CompoFieldErr bool
-}
-
-func (h *Hello2) Render() string {
-	return `
-<div>
-	<h1>{{html .Greeting}}</h1>
-	<input type="text" placeholder="{{.Placeholder}}" onchange="Name" />
-	<p>
-		{{if .Name}}
-			<World2 name="{{html .Name}}" err="{{.ChildErr}}" {{if .CompoFieldErr}}fielderr="-42"{{end}} />
-		{{else}}
-			<span>World</span>
-		{{end}}
-	</p>
-
-	{{if .TmplErr}}
-		<div>{{.UnknownField}}</div>
-	{{end}}
-
-	{{if .TextBye}}
-		Goodbye
-	{{else}}
-		<span>Goodbye</span>
-		<p>world</p>
-	{{end}}
-</div>
-	`
-}
-
-type World2 struct {
-	Name     string
-	Err      bool
-	FieldErr uint
-}
-
-func (w *World2) Render() string {
-	return `
-<div>
-	{{html .Name}}
-
-	{{if .Err}}
-		<markup.componotregistered>
-	{{end}}
-</div>
-	`
-}
-
 func BenchmarkMount(b *testing.B) {
 	bui := NewCompoBuilder()
 	bui.Register(&Hello{})
@@ -219,19 +161,5 @@ func BenchmarkMount(b *testing.B) {
 		}
 		env.Mount(hello)
 		env.Dismount(hello)
-	}
-}
-
-func BenchmarkMountOld(b *testing.B) {
-	markup.Register(&Hello{})
-	markup.Register(&World{})
-	ctx := uuid.NewV4()
-
-	for i := 0; i < b.N; i++ {
-		hello := &Hello2{
-			Name: "JonhyMaxoo",
-		}
-		markup.Mount(hello, ctx)
-		markup.Dismount(hello)
 	}
 }

@@ -168,7 +168,6 @@ func decodeComponent(c Componer, root *Tag) error {
 	b := bytes.Buffer{}
 	if err := tmpl.Execute(&b, c); err != nil {
 		return errors.Wrapf(err, "fail to decode %T", c)
-
 	}
 
 	dec := NewTagDecoder(&b)
