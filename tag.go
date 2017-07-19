@@ -1,11 +1,13 @@
 package markup
 
 import (
-	"bytes"
+	"bufio"
+	"io"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
 
@@ -73,109 +75,6 @@ var (
 	}
 )
 
-// HTML returns the HTML5 representation of t.
-func (t *Tag) HTML(env Env) (h string, err error) {
-	var b bytes.Buffer
-	if err = t.print(&b, 0, env); err != nil {
-		return
-	}
-
-	h = b.String()
-	return
-}
-
-func (t *Tag) print(b *bytes.Buffer, indent int, env Env) error {
-	if env == nil {
-		return errors.New("env is not set")
-	}
-
-	if t.IsText() {
-		t.printIndent(b, indent)
-		b.WriteString(t.Text)
-		return nil
-	}
-
-	if t.IsComponent() {
-		return t.printComponent(b, indent, env)
-	}
-
-	t.printIndent(b, indent)
-	b.WriteString("<")
-	b.WriteString(t.Name)
-	t.printAttributes(b)
-	b.WriteRune('>')
-
-	if t.IsVoidElem() {
-		return nil
-	}
-
-	if len(t.Children) == 0 {
-		b.WriteString("</")
-		b.WriteString(t.Name)
-		b.WriteRune('>')
-		return nil
-	}
-
-	for _, child := range t.Children {
-		b.WriteRune('\n')
-		child.print(b, indent+1, env)
-	}
-
-	b.WriteRune('\n')
-	t.printIndent(b, indent)
-	b.WriteString("</")
-	b.WriteString(t.Name)
-	b.WriteRune('>')
-	return nil
-}
-
-func (t *Tag) printComponent(b *bytes.Buffer, indent int, env Env) error {
-	c, err := env.Component(t.ID)
-	if err != nil {
-		return errors.Wrap(err, "can't print component")
-	}
-
-	root, _ := env.Root(c)
-	return root.print(b, indent, env)
-}
-
-func (t *Tag) printAttributes(b *bytes.Buffer) {
-	for k, v := range t.Attrs {
-		if len(v) == 0 {
-			b.WriteRune(' ')
-			b.WriteString(k)
-			continue
-		}
-
-		if strings.HasPrefix(k, "on") {
-			b.WriteRune(' ')
-			b.WriteString(k)
-			b.WriteString(`="CallGoHandler('`)
-			b.WriteString(t.CompoID.String())
-			b.WriteString(`', '`)
-			b.WriteString(v)
-			b.WriteString(`', this, event)"`)
-			continue
-		}
-
-		b.WriteRune(' ')
-		b.WriteString(k)
-		b.WriteString(`="`)
-		b.WriteString(v)
-		b.WriteString(`"`)
-	}
-
-	b.WriteString(` data-go-id="`)
-	b.WriteString(t.ID.String())
-	b.WriteString(`"`)
-}
-
-func (t *Tag) printIndent(b *bytes.Buffer, indent int) {
-	for i := 0; i < indent; i++ {
-		b.WriteString("  ")
-	}
-}
-
 // AttrMap represents a map of attributes.
 type AttrMap map[string]string
 
@@ -195,4 +94,225 @@ func AttrEquals(l, r AttrMap) bool {
 		}
 	}
 	return true
+}
+
+// TagEncoder is the interface that describes a encoder that convert a Tag to
+// HTML5.
+type TagEncoder interface {
+	Encode(t Tag) error
+}
+
+// NewTagEncoder creates a new tag encoder.
+func NewTagEncoder(w io.Writer, env Env) TagEncoder {
+	return &tagEncoder{
+		w:   bufio.NewWriter(w),
+		env: env,
+	}
+}
+
+type tagEncoder struct {
+	w   *bufio.Writer
+	env Env
+}
+
+func (e *tagEncoder) Encode(t Tag) error {
+	return e.encode(t, 0)
+}
+
+func (e *tagEncoder) encode(t Tag, indent int) error {
+	if t.IsText() {
+		e.encodeIndent(indent)
+		e.w.WriteString(t.Text)
+		return nil
+	}
+
+	if t.IsComponent() {
+		return e.encodeComponent(t, indent)
+	}
+
+	e.encodeIndent(indent)
+	e.w.WriteString("<")
+	e.w.WriteString(t.Name)
+	e.encodeAttributes(t)
+	e.w.WriteRune('>')
+
+	if t.IsVoidElem() {
+		return nil
+	}
+
+	if len(t.Children) == 0 {
+		e.w.WriteString("</")
+		e.w.WriteString(t.Name)
+		e.w.WriteRune('>')
+		return nil
+	}
+
+	for _, child := range t.Children {
+		e.w.WriteRune('\n')
+		e.encode(child, indent+1)
+	}
+
+	e.w.WriteRune('\n')
+	e.encodeIndent(indent)
+	e.w.WriteString("</")
+	e.w.WriteString(t.Name)
+	e.w.WriteRune('>')
+	return nil
+}
+
+func (e *tagEncoder) encodeComponent(t Tag, indent int) error {
+	c, err := e.env.Component(t.ID)
+	if err != nil {
+		return errors.Wrap(err, "can't encode component")
+	}
+
+	root, _ := e.env.Root(c)
+	return e.encode(root, indent)
+}
+
+func (e *tagEncoder) encodeAttributes(t Tag) {
+	for k, v := range t.Attrs {
+		if len(v) == 0 {
+			e.w.WriteRune(' ')
+			e.w.WriteString(k)
+			continue
+		}
+
+		if strings.HasPrefix(k, "on") {
+			e.w.WriteRune(' ')
+			e.w.WriteString(k)
+			e.w.WriteString(`="CallGoHandler('`)
+			e.w.WriteString(t.CompoID.String())
+			e.w.WriteString(`', '`)
+			e.w.WriteString(v)
+			e.w.WriteString(`', this, event)"`)
+			continue
+		}
+
+		e.w.WriteRune(' ')
+		e.w.WriteString(k)
+		e.w.WriteString(`="`)
+		e.w.WriteString(v)
+		e.w.WriteString(`"`)
+	}
+
+	e.w.WriteString(` data-go-id="`)
+	e.w.WriteString(t.ID.String())
+	e.w.WriteString(`"`)
+}
+
+func (e *tagEncoder) encodeIndent(indent int) {
+	for i := 0; i < indent; i++ {
+		e.w.WriteString("  ")
+	}
+}
+
+// TagDecoder is the interface that describes a decoder that can read HTML5 code
+// and translate it to a Tag tree.
+// Additionally, HTML5 can embed custom component tags.
+type TagDecoder interface {
+	Decode(t *Tag) error
+}
+
+// NewTagDecoder creates a new tag decoder.
+func NewTagDecoder(r io.Reader) TagDecoder {
+	return &tagDecoder{
+		tokenizer: html.NewTokenizer(r),
+	}
+}
+
+type tagDecoder struct {
+	tokenizer *html.Tokenizer
+	err       error
+}
+
+func (d *tagDecoder) Decode(t *Tag) error {
+	d.decode(t)
+
+	if t.IsEmpty() {
+		return errors.New("can't decode an empty html")
+	}
+
+	return d.err
+}
+
+func (d *tagDecoder) decode(t *Tag) bool {
+	z := d.tokenizer
+	switch tok := z.Next(); tok {
+	case html.StartTagToken:
+		return d.decodeTag(t)
+
+	case html.TextToken:
+		return d.decodeText(t)
+
+	case html.SelfClosingTagToken:
+		return d.decodeSelfClosingTag(t)
+
+	case html.ErrorToken:
+		return false
+	}
+	return true
+}
+
+func (d *tagDecoder) decodeTag(t *Tag) bool {
+	z := d.tokenizer
+
+	bname, hasAttr := z.TagName()
+	name := string(bname)
+	t.Name = name
+
+	if hasAttr {
+		d.decodeAttrs(t)
+	}
+
+	if t.IsComponent() || t.IsVoidElem() {
+		return true
+	}
+
+	for {
+		c := Tag{}
+		if !d.decode(&c) {
+			return false
+		}
+		if c.IsEmpty() {
+			return true
+		}
+		t.Children = append(t.Children, c)
+	}
+}
+
+func (d *tagDecoder) decodeAttrs(t *Tag) {
+	z := d.tokenizer
+
+	attrs := make(AttrMap)
+	for {
+		key, val, more := z.TagAttr()
+		attrs[string(key)] = string(val)
+		if !more {
+			break
+		}
+	}
+	t.Attrs = attrs
+}
+
+func (d *tagDecoder) decodeText(t *Tag) bool {
+	z := d.tokenizer
+
+	text := string(z.Text())
+	text = strings.TrimSpace(text)
+	t.Text = text
+
+	if t.IsEmpty() {
+		return d.decode(t)
+	}
+	return true
+}
+
+func (d *tagDecoder) decodeSelfClosingTag(t *Tag) bool {
+	z := d.tokenizer
+
+	bname, _ := z.TagName()
+	name := string(bname)
+	d.err = errors.Errorf("%s should not be a closing tag", name)
+	return false
 }

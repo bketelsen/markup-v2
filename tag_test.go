@@ -1,6 +1,7 @@
 package markup
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -95,7 +96,7 @@ func TestAttrEquals(t *testing.T) {
 	}
 }
 
-func TestTagHTML(t *testing.T) {
+func TestTagEncoderEncode(t *testing.T) {
 	b := NewCompoBuilder()
 	b.Register(&Hello{})
 	b.Register(&World{})
@@ -111,27 +112,23 @@ func TestTagHTML(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h, err := root.HTML(env)
-	if err != nil {
+	w := &bytes.Buffer{}
+	enc := NewTagEncoder(w, env)
+
+	if err := enc.Encode(root); err != nil {
 		t.Fatal(err)
 	}
-	t.Log(h)
-
-	if _, err = root.HTML(nil); err == nil {
-		t.Fatal("err should not be nil")
-	}
-	t.Log(err)
 
 	errRoot := Tag{
 		Name: "markup.hello",
 	}
-	if _, err = errRoot.HTML(env); err == nil {
+	if err := enc.Encode(errRoot); err == nil {
 		t.Fatal("err should not be nil")
 	}
 	t.Log(err)
 }
 
-func BenchmarkTagHTML(b *testing.B) {
+func BenchmarkTagEncoder(b *testing.B) {
 	bui := NewCompoBuilder()
 	bui.Register(&Hello{})
 	bui.Register(&World{})
@@ -144,22 +141,134 @@ func BenchmarkTagHTML(b *testing.B) {
 
 	root, _ := env.Mount(hello)
 	for i := 0; i < b.N; i++ {
-		root.HTML(env)
+		var v bytes.Buffer
+		enc := NewTagEncoder(&v, env)
+		enc.Encode(root)
 	}
 }
 
-func BenchmarkMount(b *testing.B) {
-	bui := NewCompoBuilder()
-	bui.Register(&Hello{})
-	bui.Register(&World{})
+func TestDecode(t *testing.T) {
+	h := `
+<div>
+	<h1>hello</h1>
+	<br>
+	<input type="text" required>
+	<lib.FooComponent Bar="42">
+</div>
+	`
 
-	env := newEnv(bui)
+	b := bytes.NewBufferString(h)
+	d := NewTagDecoder(b)
+	root := Tag{}
+	if err := d.Decode(&root); err != nil {
+		t.Fatal(err)
+	}
 
-	for i := 0; i < b.N; i++ {
-		hello := &Hello{
-			Name: "JonhyMaxoo",
-		}
-		env.Mount(hello)
-		env.Dismount(hello)
+	testDecodeCheckRoot(t, root)
+	testDecodeCheckH1(t, root.Children[0])
+	testDecodeCheckBr(t, root.Children[1])
+	testDecodeCheckInput(t, root.Children[2])
+	testDecodeCheckFooComponent(t, root.Children[3])
+}
+
+func testDecodeCheckRoot(t *testing.T, tag Tag) {
+	if name := tag.Name; name != "div" {
+		t.Fatalf(`tag name should be "div": "%s"`, name)
+	}
+	if count := len(tag.Children); count != 4 {
+		t.Fatal("tag should have 4 children:", count)
+	}
+}
+
+func testDecodeCheckH1(t *testing.T, tag Tag) {
+	if name := tag.Name; name != "h1" {
+		t.Fatalf(`tag name should be "h1": "%s"`, name)
+	}
+	if count := len(tag.Children); count != 1 {
+		t.Fatal("tag should have 1 children:", count)
+	}
+	if text := tag.Children[0]; text.Text != "hello" {
+		t.Fatalf(`text.Text should be "hello": "%s"`, text.Text)
+	}
+}
+
+func testDecodeCheckBr(t *testing.T, tag Tag) {
+	if name := tag.Name; name != "br" {
+		t.Fatalf(`tag name should be "br": "%s"`, name)
+	}
+	if count := len(tag.Children); count != 0 {
+		t.Fatal("root should not have children:", count)
+	}
+}
+
+func testDecodeCheckInput(t *testing.T, tag Tag) {
+	if name := tag.Name; name != "input" {
+		t.Fatalf(`tag name should be "input": "%s"`, name)
+	}
+	if count := len(tag.Children); count != 0 {
+		t.Fatal("tag should not have children:", count)
+	}
+	if count := len(tag.Attrs); count != 2 {
+		t.Fatal("tag should have 2 attributes:", count)
+	}
+	if val, _ := tag.Attrs["type"]; val != "text" {
+		t.Fatalf(`tag should have an attr with value = "text": %s`, val)
+	}
+	if _, ok := tag.Attrs["required"]; !ok {
+		t.Fatal(`tag should have an attr with key = "required"`)
+	}
+}
+
+func testDecodeCheckFooComponent(t *testing.T, tag Tag) {
+	if name := tag.Name; name != "lib.foocomponent" {
+		t.Fatalf(`tag name should be "lib.foocomponent": "%s"`, name)
+	}
+	if count := len(tag.Children); count != 0 {
+		t.Fatal("tag should not have children:", count)
+	}
+	if count := len(tag.Attrs); count != 1 {
+		t.Fatal("tag should have 1 attribure:", count)
+	}
+	if val, _ := tag.Attrs["bar"]; val != "42" {
+		t.Fatalf(`tag should have an attr with value = "42": %s`, val)
+	}
+}
+
+func TestDecodeSelfClosingTagError(t *testing.T) {
+	h := `
+<p>
+	<input/>
+</p>
+`
+
+	b := bytes.NewBufferString(h)
+	d := NewTagDecoder(b)
+	root := Tag{}
+	if err := d.Decode(&root); err == nil {
+		t.Fatal("err should not be nil")
+	}
+}
+
+func TestDecodeEmptyHTML(t *testing.T) {
+	h := ""
+
+	b := bytes.NewBufferString(h)
+	d := NewTagDecoder(b)
+
+	root := Tag{}
+	if err := d.Decode(&root); err == nil {
+		t.Fatal("err should not be nil")
+	}
+}
+
+func TestDecodeNonClosingHTML(t *testing.T) {
+	h := "<body><div>"
+
+	b := bytes.NewBufferString(h)
+	d := NewTagDecoder(b)
+
+	root := Tag{}
+	if err := d.Decode(&root); err != nil {
+		t.Fatal(err)
 	}
 }
