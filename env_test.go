@@ -715,3 +715,19 @@ func BenchmarkSync(b *testing.B) {
 		alt = !alt
 	}
 }
+
+func TestDumpEnv(b *testing.B) {
+	bui := NewCompoBuilder()
+	bui.Register(&Hello{})
+	bui.Register(&World{})
+
+	env := newEnv(bui)
+
+	for i := 0; i < b.N; i++ {
+		hello := &Hello{
+			Name: "JonhyMaxoo",
+		}
+		env.Mount(hello)
+		env.Dismount(hello)
+	}
+}

@@ -114,10 +114,10 @@ func TestTagEncoderEncode(t *testing.T) {
 
 	w := &bytes.Buffer{}
 	enc := NewTagEncoder(w, env)
-
 	if err := enc.Encode(root); err != nil {
 		t.Fatal(err)
 	}
+	t.Log(w.String())
 
 	errRoot := Tag{
 		Name: "markup.hello",

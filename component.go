@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -34,6 +35,12 @@ type Mounter interface {
 // OnDismount si called when a component is dismounted.
 type Dismounter interface {
 	OnDismount()
+}
+
+// Navigator is the interface that wraps OnNavigate method.
+// OnNavigate is called when a component is navigated to.
+type Navigator interface {
+	OnNavigate(u url.URL)
 }
 
 // Mapper is the interface that wraps FuncMaps method.

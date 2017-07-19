@@ -116,7 +116,10 @@ type tagEncoder struct {
 }
 
 func (e *tagEncoder) Encode(t Tag) error {
-	return e.encode(t, 0)
+	if err := e.encode(t, 0); err != nil {
+		return err
+	}
+	return e.w.Flush()
 }
 
 func (e *tagEncoder) encode(t Tag, indent int) error {
