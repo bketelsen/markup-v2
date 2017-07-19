@@ -29,22 +29,29 @@ type Env interface {
 	Dismount(c Componer)
 }
 
-// NewEnv creates a new environment.
-func NewEnv(b CompoBuilder) Env {
-	return newEnv(b)
+// NewServerEnv creates an environment fitted for server side use.
+func NewServerEnv(b CompoBuilder) Env {
+	return newEnv(b, false)
+}
+
+// NewClientEnv creates an environment fitted for client side use.
+func NewClientEnv(b CompoBuilder) Env {
+	return newEnv(b, true)
 }
 
 type env struct {
 	components   map[uuid.UUID]Componer
 	compoRoots   map[Componer]Tag
 	compoBuilder CompoBuilder
+	client       bool
 }
 
-func newEnv(b CompoBuilder) *env {
+func newEnv(b CompoBuilder, client bool) *env {
 	return &env{
 		components:   make(map[uuid.UUID]Componer),
 		compoRoots:   make(map[Componer]Tag),
 		compoBuilder: b,
+		client:       client,
 	}
 }
 
@@ -89,7 +96,7 @@ func (e *env) mount(c Componer, rootID uuid.UUID, compoID uuid.UUID) (root Tag, 
 	e.components[compoID] = c
 	e.compoRoots[c] = root
 
-	if mounter, ok := c.(Mounter); ok {
+	if mounter, ok := c.(Mounter); ok && e.client {
 		mounter.OnMount()
 	}
 	return
@@ -138,7 +145,7 @@ func (e *env) Dismount(c Componer) {
 	delete(e.components, root.CompoID)
 	delete(e.compoRoots, c)
 
-	if dismounter, ok := c.(Dismounter); ok {
+	if dismounter, ok := c.(Dismounter); ok && e.client {
 		dismounter.OnDismount()
 	}
 	return

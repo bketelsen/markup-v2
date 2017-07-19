@@ -101,7 +101,7 @@ func TestTagEncoderEncode(t *testing.T) {
 	b.Register(&Hello{})
 	b.Register(&World{})
 
-	env := newEnv(b)
+	env := newEnv(b, true)
 
 	hello := &Hello{
 		Name: "JonhyMaxoo",
@@ -133,7 +133,7 @@ func BenchmarkTagEncoder(b *testing.B) {
 	bui.Register(&Hello{})
 	bui.Register(&World{})
 
-	env := newEnv(bui)
+	env := newEnv(bui, true)
 
 	hello := &Hello{
 		Name: "JonhyMaxoo",

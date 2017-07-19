@@ -134,7 +134,8 @@ func (w *World) Render() string {
 
 func TestNewEnv(t *testing.T) {
 	b := NewCompoBuilder()
-	NewEnv(b)
+	NewClientEnv(b)
+	NewServerEnv(b)
 }
 
 func TestEnvComponent(t *testing.T) {
@@ -142,7 +143,7 @@ func TestEnvComponent(t *testing.T) {
 	foo := &Foo{}
 
 	b := NewCompoBuilder()
-	env := newEnv(b)
+	env := newEnv(b, true)
 	env.components[compoID] = foo
 
 	c, err := env.Component(compoID)
@@ -162,7 +163,7 @@ func TestEnvRoot(t *testing.T) {
 	b := NewCompoBuilder()
 	b.Register(&Foo{})
 	b.Register(&Bar{})
-	env := newEnv(b)
+	env := newEnv(b, true)
 
 	foo := &Foo{}
 	compoID := uuid.New()
@@ -196,7 +197,7 @@ func TestEnv(t *testing.T) {
 	b.Register(&Hello{})
 	b.Register(&World{})
 
-	env := newEnv(b)
+	env := newEnv(b, true)
 
 	tests := []struct {
 		name string
@@ -675,7 +676,7 @@ func BenchmarkMount(b *testing.B) {
 	bui.Register(&Hello{})
 	bui.Register(&World{})
 
-	env := newEnv(bui)
+	env := newEnv(bui, true)
 
 	for i := 0; i < b.N; i++ {
 		hello := &Hello{
@@ -691,7 +692,7 @@ func BenchmarkSync(b *testing.B) {
 	bui.Register(&Hello{})
 	bui.Register(&World{})
 
-	env := newEnv(bui)
+	env := newEnv(bui, true)
 
 	hello := &Hello{
 		Name: "JonhyMaxoo",
@@ -716,18 +717,6 @@ func BenchmarkSync(b *testing.B) {
 	}
 }
 
-func TestDumpEnv(b *testing.B) {
-	bui := NewCompoBuilder()
-	bui.Register(&Hello{})
-	bui.Register(&World{})
+func TestDumpEnv(t *testing.T) {
 
-	env := newEnv(bui)
-
-	for i := 0; i < b.N; i++ {
-		hello := &Hello{
-			Name: "JonhyMaxoo",
-		}
-		env.Mount(hello)
-		env.Dismount(hello)
-	}
 }
