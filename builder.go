@@ -34,8 +34,7 @@ func (b compoBuilder) Register(c Componer) (override bool, err error) {
 	v := reflect.ValueOf(c).Elem()
 	t := v.Type()
 
-	name := strings.ToLower(t.String())
-	name = normalizeCompoName(name)
+	name := normalizeCompoName(t.String())
 
 	_, override = b[name]
 	b[name] = t

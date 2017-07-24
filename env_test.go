@@ -717,6 +717,21 @@ func BenchmarkSync(b *testing.B) {
 	}
 }
 
-func TestDumpEnv(t *testing.T) {
+func TestEnvExport(t *testing.T) {
+	bui := NewCompoBuilder()
+	bui.Register(&Hello{})
+	bui.Register(&World{})
 
+	env := newEnv(bui, true)
+
+	hello := &Hello{
+		Name: "JonhyMaxoo",
+	}
+	env.Mount(hello)
+
+	exp, err := env.Export()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(exp))
 }

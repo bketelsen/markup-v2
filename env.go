@@ -1,6 +1,9 @@
 package markup
 
 import (
+	"encoding/json"
+	"reflect"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -332,8 +335,52 @@ func (e *env) syncTagChildren(l, r *Tag) (syncs []Sync, fullsync bool, err error
 	return
 }
 
+func (e *env) Export() (j string, err error) {
+	exp := make([]EnvExport, 0, len(e.compoRoots))
+
+	for k, v := range e.compoRoots {
+		kt := reflect.TypeOf(k).Elem()
+		name := normalizeCompoName(kt.String())
+
+		var compo []byte
+		if compo, err = json.Marshal(k); err != nil {
+			return
+		}
+
+		e := EnvExport{
+			Name:      name,
+			Component: string(compo),
+			Root:      v,
+		}
+
+		exp = append(exp, e)
+	}
+
+	d, err := json.Marshal(exp)
+	return
+}
+
+func (e *env) Import(m map[string]Tag) error {
+	// for k, v := range m {
+	// 	c, err := e.compoBuilder.New(k)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	e.components[v.CompoID] = c
+	// 	e.compoRoots[c] = v
+	// }
+	return nil
+}
+
 // Sync represents a sync operatrion.
 type Sync struct {
 	Tag  Tag
 	Full bool
+}
+
+type EnvExport struct {
+	Name      string
+	Component string
+	Root      Tag
 }
