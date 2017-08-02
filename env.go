@@ -1,9 +1,6 @@
 package markup
 
 import (
-	"encoding/json"
-	"reflect"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -32,30 +29,23 @@ type Env interface {
 	Dismount(c Componer)
 }
 
-// NewServerEnv creates an environment fitted for server side use.
-func NewServerEnv(b CompoBuilder) Env {
-	return newEnv(b, false)
+// NewEnv creates an environment.
+func NewEnv(b CompoBuilder) Env {
+	return newEnv(b)
 }
 
-// NewClientEnv creates an environment fitted for client side use.
-func NewClientEnv(b CompoBuilder) Env {
-	return newEnv(b, true)
+func newEnv(b CompoBuilder) *env {
+	return &env{
+		components:   make(map[uuid.UUID]Componer),
+		compoRoots:   make(map[Componer]Tag),
+		compoBuilder: b,
+	}
 }
 
 type env struct {
 	components   map[uuid.UUID]Componer
 	compoRoots   map[Componer]Tag
 	compoBuilder CompoBuilder
-	client       bool
-}
-
-func newEnv(b CompoBuilder, client bool) *env {
-	return &env{
-		components:   make(map[uuid.UUID]Componer),
-		compoRoots:   make(map[Componer]Tag),
-		compoBuilder: b,
-		client:       client,
-	}
 }
 
 func (e *env) Component(id uuid.UUID) (c Componer, err error) {
@@ -99,7 +89,7 @@ func (e *env) mount(c Componer, rootID uuid.UUID, compoID uuid.UUID) (root Tag, 
 	e.components[compoID] = c
 	e.compoRoots[c] = root
 
-	if mounter, ok := c.(Mounter); ok && e.client {
+	if mounter, ok := c.(Mounter); ok {
 		mounter.OnMount()
 	}
 	return
@@ -148,7 +138,7 @@ func (e *env) Dismount(c Componer) {
 	delete(e.components, root.CompoID)
 	delete(e.compoRoots, c)
 
-	if dismounter, ok := c.(Dismounter); ok && e.client {
+	if dismounter, ok := c.(Dismounter); ok {
 		dismounter.OnDismount()
 	}
 	return
@@ -335,52 +325,8 @@ func (e *env) syncTagChildren(l, r *Tag) (syncs []Sync, fullsync bool, err error
 	return
 }
 
-func (e *env) Export() (j string, err error) {
-	exp := make([]EnvExport, 0, len(e.compoRoots))
-
-	for k, v := range e.compoRoots {
-		kt := reflect.TypeOf(k).Elem()
-		name := normalizeCompoName(kt.String())
-
-		var compo []byte
-		if compo, err = json.Marshal(k); err != nil {
-			return
-		}
-
-		e := EnvExport{
-			Name:      name,
-			Component: string(compo),
-			Root:      v,
-		}
-
-		exp = append(exp, e)
-	}
-
-	d, err := json.Marshal(exp)
-	return
-}
-
-func (e *env) Import(m map[string]Tag) error {
-	// for k, v := range m {
-	// 	c, err := e.compoBuilder.New(k)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	e.components[v.CompoID] = c
-	// 	e.compoRoots[c] = v
-	// }
-	return nil
-}
-
 // Sync represents a sync operatrion.
 type Sync struct {
 	Tag  Tag
 	Full bool
-}
-
-type EnvExport struct {
-	Name      string
-	Component string
-	Root      Tag
 }
