@@ -35,6 +35,11 @@ func TestTagIsComponent(t *testing.T) {
 		t.Error("tag should be a component")
 	}
 
+	tag = Tag{Name: "foo", Svg: true}
+	if tag.IsComponent() {
+		t.Error("tag should not be a component")
+	}
+
 	tag = Tag{Name: "div"}
 	if tag.IsComponent() {
 		t.Error("tag should not be a component")
@@ -49,6 +54,11 @@ func TestTagIsComponent(t *testing.T) {
 func TestTagIsVoidElement(t *testing.T) {
 	tag := Tag{Name: "input"}
 	if !tag.IsVoidElem() {
+		t.Error("tag should be a void element")
+	}
+
+	tag = Tag{Name: "link", Svg: true}
+	if tag.IsVoidElem() {
 		t.Error("tag should be a void element")
 	}
 
@@ -122,7 +132,7 @@ func TestTagEncoderEncode(t *testing.T) {
 	errRoot := Tag{
 		Name: "markup.hello",
 	}
-	if err := enc.Encode(errRoot); err == nil {
+	if err = enc.Encode(errRoot); err == nil {
 		t.Fatal("err should not be nil")
 	}
 	t.Log(err)
@@ -150,10 +160,15 @@ func BenchmarkTagEncoder(b *testing.B) {
 func TestDecode(t *testing.T) {
 	h := `
 <div>
+	<!-- Comment -->	
 	<h1>hello</h1>
 	<br>
 	<input type="text" required>
 	<lib.FooComponent Bar="42">
+	<svg>
+		<path d="M 42.42 Z "></path>
+		<path d="M 21.21 Z " />
+	</svg>
 </div>
 	`
 
@@ -169,14 +184,15 @@ func TestDecode(t *testing.T) {
 	testDecodeCheckBr(t, root.Children[1])
 	testDecodeCheckInput(t, root.Children[2])
 	testDecodeCheckFooComponent(t, root.Children[3])
+	testDecodeCheckSvg(t, root.Children[4])
 }
 
 func testDecodeCheckRoot(t *testing.T, tag Tag) {
 	if name := tag.Name; name != "div" {
 		t.Fatalf(`tag name should be "div": "%s"`, name)
 	}
-	if count := len(tag.Children); count != 4 {
-		t.Fatal("tag should have 4 children:", count)
+	if count := len(tag.Children); count != 5 {
+		t.Fatal("tag should have 5 children:", count)
 	}
 }
 
@@ -227,10 +243,47 @@ func testDecodeCheckFooComponent(t *testing.T, tag Tag) {
 		t.Fatal("tag should not have children:", count)
 	}
 	if count := len(tag.Attrs); count != 1 {
-		t.Fatal("tag should have 1 attribure:", count)
+		t.Fatal("tag should have 1 attribute:", count)
 	}
 	if val, _ := tag.Attrs["bar"]; val != "42" {
 		t.Fatalf(`tag should have an attr with value = "42": %s`, val)
+	}
+}
+
+func testDecodeCheckSvg(t *testing.T, tag Tag) {
+	if name := tag.Name; name != "svg" {
+		t.Fatalf(`tag name should be "svg": "%s"`, name)
+	}
+	if count := len(tag.Children); count != 2 {
+		t.Fatal("tag should have 2 children:", count)
+	}
+
+	path1 := tag.Children[0]
+	if name := path1.Name; name != "path" {
+		t.Fatalf(`path1 name should be "path": "%s"`, name)
+	}
+	if count := len(path1.Children); count != 0 {
+		t.Fatal("path1 should not have children:", count)
+	}
+	if count := len(path1.Attrs); count != 1 {
+		t.Fatal("path1 should have 1 attribute:", count)
+	}
+	if d := path1.Attrs["d"]; d != "M 42.42 Z " {
+		t.Fatalf(`path1 should have the attribute d="M 42.42 Z ": "%s"`, d)
+	}
+
+	path2 := tag.Children[1]
+	if name := path2.Name; name != "path" {
+		t.Fatalf(`path2 name should be "path": "%s"`, name)
+	}
+	if count := len(path2.Children); count != 0 {
+		t.Fatal("path2 should not have children:", count)
+	}
+	if count := len(path2.Attrs); count != 1 {
+		t.Fatal("path2 should have 1 attribute:", count)
+	}
+	if d := path2.Attrs["d"]; d != "M 21.21 Z " {
+		t.Fatalf(`path2 should have the attribute d="M 21.21 Z ": "%s"`, d)
 	}
 }
 

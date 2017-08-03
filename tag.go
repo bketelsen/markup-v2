@@ -17,6 +17,7 @@ type Tag struct {
 	CompoID  uuid.UUID
 	Name     string
 	Text     string
+	Svg      bool
 	Attrs    AttrMap
 	Children []Tag
 }
@@ -43,6 +44,10 @@ func (t *Tag) IsComponent() bool {
 		return false
 	}
 
+	if t.Svg {
+		return false
+	}
+
 	a := atom.Lookup([]byte(t.Name))
 	return a == 0
 }
@@ -51,6 +56,9 @@ func (t *Tag) IsComponent() bool {
 // Void elements are tags listed at
 // https://www.w3.org/TR/html5/syntax.html#void-elements.
 func (t *Tag) IsVoidElem() bool {
+	if t.Svg {
+		return false
+	}
 	_, ok := voidElems[t.Name]
 	return ok
 }
@@ -113,6 +121,7 @@ func NewTagEncoder(w io.Writer, env Env) TagEncoder {
 type tagEncoder struct {
 	w   *bufio.Writer
 	env Env
+	svg bool
 }
 
 func (e *tagEncoder) Encode(t Tag) error {
@@ -226,6 +235,7 @@ func NewTagDecoder(r io.Reader) TagDecoder {
 
 type tagDecoder struct {
 	tokenizer *html.Tokenizer
+	svg       bool
 	err       error
 }
 
@@ -240,10 +250,12 @@ func (d *tagDecoder) Decode(t *Tag) error {
 }
 
 func (d *tagDecoder) decode(t *Tag) bool {
-	z := d.tokenizer
-	switch tok := z.Next(); tok {
+	switch d.tokenizer.Next() {
 	case html.StartTagToken:
 		return d.decodeTag(t)
+
+	case html.EndTagToken:
+		return d.decodeEndTag(t)
 
 	case html.TextToken:
 		return d.decodeText(t)
@@ -254,15 +266,18 @@ func (d *tagDecoder) decode(t *Tag) bool {
 	case html.ErrorToken:
 		return false
 	}
-	return true
+	return d.decode(t)
 }
 
 func (d *tagDecoder) decodeTag(t *Tag) bool {
-	z := d.tokenizer
-
-	bname, hasAttr := z.TagName()
+	bname, hasAttr := d.tokenizer.TagName()
 	name := string(bname)
 	t.Name = name
+
+	if name == "svg" {
+		d.svg = true
+	}
+	t.Svg = d.svg
 
 	if hasAttr {
 		d.decodeAttrs(t)
@@ -277,19 +292,21 @@ func (d *tagDecoder) decodeTag(t *Tag) bool {
 		if !d.decode(&c) {
 			return false
 		}
+
+		// An empty child can result only if the decoder encountered an end tag.
+		// It means the current tag doesn't have other children.
 		if c.IsEmpty() {
 			return true
 		}
+
 		t.Children = append(t.Children, c)
 	}
 }
 
 func (d *tagDecoder) decodeAttrs(t *Tag) {
-	z := d.tokenizer
-
 	attrs := make(AttrMap)
 	for {
-		key, val, more := z.TagAttr()
+		key, val, more := d.tokenizer.TagAttr()
 		attrs[string(key)] = string(val)
 		if !more {
 			break
@@ -298,24 +315,44 @@ func (d *tagDecoder) decodeAttrs(t *Tag) {
 	t.Attrs = attrs
 }
 
-func (d *tagDecoder) decodeText(t *Tag) bool {
-	z := d.tokenizer
+func (d *tagDecoder) decodeEndTag(t *Tag) bool {
+	bname, _ := d.tokenizer.TagName()
+	name := string(bname)
 
-	text := string(z.Text())
-	text = strings.TrimSpace(text)
-	t.Text = text
-
-	if t.IsEmpty() {
-		return d.decode(t)
+	if name == "svg" {
+		d.svg = false
 	}
 	return true
 }
 
 func (d *tagDecoder) decodeSelfClosingTag(t *Tag) bool {
-	z := d.tokenizer
-
-	bname, _ := z.TagName()
+	bname, hasAttr := d.tokenizer.TagName()
 	name := string(bname)
-	d.err = errors.Errorf("%s should not be a closing tag", name)
-	return false
+
+	if !d.svg || name == "svg" {
+		d.err = errors.Errorf("%s should not be a self closing tag", name)
+		return false
+	}
+
+	t.Name = name
+	t.Svg = true
+
+	if hasAttr {
+		d.decodeAttrs(t)
+	}
+	return true
+}
+
+func (d *tagDecoder) decodeText(t *Tag) bool {
+	text := string(d.tokenizer.Text())
+	text = strings.TrimSpace(text)
+
+	// There is no need to have empty text tag. If it is the case we try to
+	// decode the next tag.
+	if len(text) == 0 {
+		return d.decode(t)
+	}
+
+	t.Text = text
+	return true
 }

@@ -476,9 +476,8 @@ func testEnvUpdateMergeHTMLText(t *testing.T, env *env, c *Hello) {
 		t.Fatal("root should have 4 children:", l)
 	}
 	if text := root.Children[3]; text.Text != "Goodbye" {
-		t.Fatalf(`text should be "Goodbye": "%s"`, text)
+		t.Fatalf(`text should be "Goodbye": "%s"`, text.Text)
 	}
-
 }
 
 func testEnvUpdateMergeTextHTML(t *testing.T, env *env, c *Hello) {
